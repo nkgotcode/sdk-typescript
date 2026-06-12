@@ -13,12 +13,7 @@ import type {
   StorageDriverStoreContext,
   StorageDriverTargetInfo,
 } from '../converter/extstore';
-import {
-  ExternalStorageDriverArityMismatchError,
-  ExternalStorageDriverNotFoundError,
-  ExternalStorageDriverOperationFailedError,
-  ExternalStorageSelectorInvalidDriverError,
-} from '../errors';
+import { ExternalStorageDriverOperationFailedError, ValueError } from '../errors';
 import type { Payload } from '../interfaces';
 import { decodeReferencePayload, encodeReferencePayload, isReferencePayload } from './extstore-helpers';
 
@@ -73,9 +68,8 @@ export class ExternalStorageRunner {
       const selected = driverSelector(storeCtx, payload);
       if (selected === null) continue;
       if (this.externalStorage.getDriver(selected.name) !== selected) {
-        throw new ExternalStorageSelectorInvalidDriverError(
-          `Driver '${selected.name}' returned by driverSelector is not registered in ExternalStorage.drivers`,
-          selected.name
+        throw new ValueError(
+          `Driver '${selected.name}' returned by driverSelector is not registered in ExternalStorage.drivers`
         );
       }
 
@@ -98,12 +92,8 @@ export class ExternalStorageRunner {
         )
       );
       if (claims.length !== group.items.length) {
-        throw new ExternalStorageDriverArityMismatchError(
-          `Driver '${group.driver.name}' returned ${claims.length} claims for ${group.items.length} payloads`,
-          group.driver.name,
-          'store',
-          group.items.length,
-          claims.length
+        throw new ValueError(
+          `Driver '${group.driver.name}' returned ${claims.length} claims for ${group.items.length} payloads`
         );
       }
       for (const [j, claim] of claims.entries()) {
@@ -140,10 +130,7 @@ export class ExternalStorageRunner {
       const decoded = decodeReferencePayload(payload);
       const driver = this.externalStorage.getDriver(decoded.driverName);
       if (driver === null) {
-        throw new ExternalStorageDriverNotFoundError(
-          `No driver registered with name '${decoded.driverName}'`,
-          decoded.driverName
-        );
+        throw new ValueError(`No driver registered with name '${decoded.driverName}'`);
       }
       let group = driverGroups.get(decoded.driverName);
       if (group === undefined) {
@@ -164,12 +151,8 @@ export class ExternalStorageRunner {
         )
       );
       if (retrieved.length !== group.items.length) {
-        throw new ExternalStorageDriverArityMismatchError(
-          `Driver '${group.driver.name}' returned ${retrieved.length} payloads for ${group.items.length} claims`,
-          group.driver.name,
-          'retrieve',
-          group.items.length,
-          retrieved.length
+        throw new ValueError(
+          `Driver '${group.driver.name}' returned ${retrieved.length} payloads for ${group.items.length} claims`
         );
       }
       for (const [j, retrievedPayload] of retrieved.entries()) {
